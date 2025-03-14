@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"github.com/astaxie/beego/validation"
 	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
@@ -8,7 +9,7 @@ import (
 	"github.com/youngking/gin-blog/pkg/app"
 	"github.com/youngking/gin-blog/pkg/e"
 	"github.com/youngking/gin-blog/pkg/export"
-	"github.com/youngking/gin-blog/pkg/qcrode"
+	"github.com/youngking/gin-blog/pkg/qrcode"
 	"github.com/youngking/gin-blog/pkg/setting"
 	utills "github.com/youngking/gin-blog/pkg/util"
 	"github.com/youngking/gin-blog/service/article_service"
@@ -332,17 +333,35 @@ func ImportArticle(c *gin.Context) {
 }
 
 const (
-	QRCODE_URL = "https://github.com/EDDYCJY/blog#gin%E7%B3%BB%E5%88%97%E7%9B%AE%E5%BD%95"
+	QRCODE_URL = "https://github.com/yong-king/go-gin"
 )
 
 func GenerateArticlePoster(c *gin.Context) {
 	appG := app.Gin{c}
-	qrc := qcrode.NewQrCode(QRCODE_URL, 300, 300, qr.M, qr.Auto)
-	path := qcrode.GetQrCodeFullPath()
-	_, _, err := qrc.Encode(path)
+	// 创建二维码实例
+	qr := qrcode.NewQrCode(QRCODE_URL, 300, 300, qr.M, qr.Auto)
+	// 海报名称
+	posterName := article_service.GetPosterFlag() + "-" + qrcode.GetFileName(qr.URL) + qr.GetFileExt()
+	//fmt.Print(posterName)
+	article := &article_service.Article{}
+	// 创建海报实例
+	articlePoster := article_service.NewArticlePoster(posterName, article, qr)
+
+	// 创建背景海报实例
+	articlePosterBgService := article_service.NewArticlePosterBg(
+		"bg.jpeg",
+		articlePoster,
+		&article_service.Rect{X0: 0, Y0: 0, X1: 640, Y1: 640},
+		&article_service.Pt{X: 40, Y: 40})
+	_, filePath, err := articlePosterBgService.Generate()
 	if err != nil {
-		appG.Response(http.StatusOK, e.ERROR, nil)
+		appG.Response(http.StatusOK, e.ERROR_GEN_ARTICLE_POSTER_FAIL, nil)
 		return
 	}
-	appG.Response(http.StatusOK, e.SUCCESS, nil)
+	fmt.Println("filePath:", filePath)
+	fmt.Println("qrcode.GetQrCodeFullUrl:", qrcode.GetQrCodeFullUrl(filePath))
+	appG.Response(http.StatusOK, e.SUCCESS, map[string]string{
+		"poster_url":      qrcode.GetQrCodeFullUrl(filePath) + posterName,
+		"poster_save_url": filePath + posterName,
+	})
 }

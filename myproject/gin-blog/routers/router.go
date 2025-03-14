@@ -23,6 +23,7 @@ func InitRouter() *gin.Engine {
 	r.StaticFS("/upload/images", http.Dir(upload.GetImageFullPath()))
 	//fmt.Println("图片存储路径:", upload.GetImageFullPath())
 	r.StaticFS("/export", http.Dir(export.GetExcelFullPath()))
+	r.Static("/runtime/qrcode", "./runtime/qrcode")
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.POST("/auth", api.GetAuth)
