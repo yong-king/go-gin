@@ -1,8 +1,10 @@
 package article_service
 
 import (
+	"github.com/golang/freetype"
 	"github.com/youngking/gin-blog/pkg/file"
 	"github.com/youngking/gin-blog/pkg/qrcode"
+	"github.com/youngking/gin-blog/pkg/setting"
 	"image"
 	"image/draw"
 	"image/jpeg"
@@ -129,7 +131,79 @@ func (a *ArticlePosterBg) Generate() (string, string, error) {
 		draw.Draw(jpg, jpg.Bounds(), bgImage, bgImage.Bounds().Min, draw.Over)
 		draw.Draw(jpg, jpg.Bounds(), qrImage, qrImage.Bounds().Min.Sub(image.Pt(a.X, a.Y)), draw.Over)
 
-		jpeg.Encode(mergedF, jpg, nil)
+		err = a.DrawPoster(&DrawText{
+			JPG:     jpg,
+			mergedF: mergedF,
+			Title:   "Golang",
+			X0:      80,
+			Y0:      160,
+			Size0:   42,
+
+			SubTitle: "---YoungKing",
+			X1:       320,
+			Y1:       220,
+			Size1:    36,
+		}, "msyhbd.ttc")
+		if err != nil {
+			return "", "", err
+		}
 	}
 	return fileName, path, nil
+}
+
+// 加文字结构体
+type DrawText struct {
+	JPG     draw.Image
+	mergedF *os.File
+
+	Title string
+	X0    int
+	Y0    int
+	Size0 float64
+
+	SubTitle string
+	X1       int
+	Y1       int
+	Size1    float64
+}
+
+func (a *ArticlePosterBg) DrawPoster(d *DrawText, fontName string) error {
+	// 获取字体路径
+	fontScorce := setting.AppSetting.RuntimeRootPath + setting.AppSetting.FontSavePath + fontName
+	// 读取字体文件
+	fontBytes, err := os.ReadFile(fontScorce)
+	if err != nil {
+		return err
+	}
+	// 解析字体，获取字体轮廓等
+	trueTypeFont, err := freetype.ParseFont(fontBytes)
+	if err != nil {
+		return err
+	}
+
+	// 创建一个freetype.Context对象，所有的字体绘制操作都将基于这个上下文进行。
+	fc := freetype.NewContext()
+	fc.SetDPI(72)
+	fc.SetFont(trueTypeFont)
+	fc.SetFontSize(d.Size0)
+	fc.SetClip(d.JPG.Bounds())
+	fc.SetDst(d.JPG)
+	fc.SetSrc(image.Black)
+	pt := freetype.Pt(d.X0, d.Y0)
+	_, err = fc.DrawString(d.Title, pt)
+	if err != nil {
+		return err
+	}
+
+	fc.SetFontSize(d.Size1)
+	_, err = fc.DrawString(d.SubTitle, freetype.Pt(d.X1, d.Y1))
+	if err != nil {
+		return err
+	}
+
+	err = jpeg.Encode(d.mergedF, d.JPG, nil)
+	if err != nil {
+		return err
+	}
+	return nil
 }

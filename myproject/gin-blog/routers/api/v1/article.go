@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"fmt"
 	"github.com/astaxie/beego/validation"
 	"github.com/boombuler/barcode/qr"
 	"github.com/gin-gonic/gin"
@@ -351,15 +350,15 @@ func GenerateArticlePoster(c *gin.Context) {
 	articlePosterBgService := article_service.NewArticlePosterBg(
 		"bg.jpeg",
 		articlePoster,
-		&article_service.Rect{X0: 0, Y0: 0, X1: 640, Y1: 640},
-		&article_service.Pt{X: 40, Y: 40})
+		&article_service.Rect{X0: 0, Y0: 0, X1: 550, Y1: 700},
+		&article_service.Pt{X: 125, Y: 298})
 	_, filePath, err := articlePosterBgService.Generate()
 	if err != nil {
 		appG.Response(http.StatusOK, e.ERROR_GEN_ARTICLE_POSTER_FAIL, nil)
 		return
 	}
-	fmt.Println("filePath:", filePath)
-	fmt.Println("qrcode.GetQrCodeFullUrl:", qrcode.GetQrCodeFullUrl(filePath))
+	//fmt.Println("filePath:", filePath)
+	//fmt.Println("qrcode.GetQrCodeFullUrl:", qrcode.GetQrCodeFullUrl(filePath))
 	appG.Response(http.StatusOK, e.SUCCESS, map[string]string{
 		"poster_url":      qrcode.GetQrCodeFullUrl(filePath) + posterName,
 		"poster_save_url": filePath + posterName,
